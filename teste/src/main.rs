@@ -1,37 +1,26 @@
+use std::collections::HashMap;
+
 fn main() {
-    println!("{}", nth(0));
-    println!("{}", nth(1));
-    println!("{}", nth(2));
-    println!("{}", nth(3));
-    println!("{}", nth(4));
-    println!("{}", nth(5));
-    println!("{}", nth(10_000));
+    println!("{}", roman_to_int("III".to_string()));
+    println!("{}", roman_to_int("LVIII".to_string()));
+    println!("{}", roman_to_int("MCMXCIV".to_string()));
 }
 
-pub fn nth(n: u32) -> u32 {
-    let mut num = 3;
-    let mut prime_index = 1;
-    if n == 0 {
-        return 2
+pub fn roman_to_int(s: String) -> i32 {
+    let symbol_value_map = HashMap::from([
+        ("I", 1),
+        ("V", 5),
+        ("X", 10),
+        ("L", 50),
+        ("C", 100),
+        ("D", 500),
+        ("M", 1000),
+    ]);             
+    let mut sum = 0;
+    let values: Vec<i32> = s.chars().map(|symbol| *symbol_value_map.get(&symbol.to_string().as_str()).unwrap()).collect();
+    for (index, &current_value) in values.iter().enumerate() {
+        let next_value = *values.iter().nth(index+1).unwrap_or(&0);
+        sum += if next_value > current_value { -current_value } else { current_value };
     }
-    loop {
-        if prime_index == n {
-            break;
-        }
-   
-        num += 2;
-        let mut is_prime = true;
-   
-        for i in 2..num {
-            if num % i == 0 {
-                is_prime = false;
-                break;
-            }
-        }
-        
-        if is_prime {
-            prime_index += 1;
-        }
-    }
-    num
+    sum
 }
