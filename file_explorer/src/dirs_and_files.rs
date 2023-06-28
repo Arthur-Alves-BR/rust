@@ -13,9 +13,38 @@ pub fn open_file(path: &mut PathBuf) {
 }
 
 pub fn get_dir_entries(path: &PathBuf) -> Vec<DirEntry> {
-    read_dir(path)
-        .unwrap()
-        .filter(Result::is_ok)
-        .map(Result::unwrap)
-        .collect()
+    return match read_dir(path) {
+        Ok(entries) => entries.filter(Result::is_ok).map(Result::unwrap).collect(),
+        Err(_) => Vec::new(),
+    };
+}
+
+pub fn get_all_dir_entries_below_path(path: &PathBuf) -> Vec<DirEntry> {
+    let mut results: Vec<DirEntry> = Vec::new();
+    let entries = get_dir_entries(path);
+
+    for entry in &entries {
+        if entry.path().is_file() {
+            continue;
+        }
+        results.extend(get_all_dir_entries_below_path(&entry.path()));
+    }
+
+    results.extend(entries);
+    results
+}
+
+pub fn search_in_dir(path: &PathBuf, expression: &String) -> Vec<DirEntry> {
+    let mut results: Vec<DirEntry> = Vec::new();
+    for entry in get_all_dir_entries_below_path(path) {
+        if entry
+            .file_name()
+            .into_string()
+            .unwrap()
+            .contains(expression)
+        {
+            results.push(entry)
+        }
+    }
+    results
 }
