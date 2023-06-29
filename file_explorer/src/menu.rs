@@ -1,6 +1,13 @@
+use crossterm::event::{read, Event, KeyCode, KeyEvent, KeyEventKind};
+
 use std::ffi::OsString;
 use std::fs::DirEntry;
 use std::io::{self, Write};
+
+pub enum Command {
+    Open,
+    Return,
+}
 
 #[derive(Debug)]
 pub struct Menu {
@@ -8,8 +15,6 @@ pub struct Menu {
 }
 
 impl Menu {
-    pub const COME_BACK_MESSAGE: &str = "VOLTAR";
-
     pub fn new() -> Self {
         Self {
             options: Vec::new(),
@@ -24,10 +29,10 @@ impl Menu {
             .map(OsString::into_string)
             .map(Result::unwrap)
             .collect();
-        self.options.push(Self::COME_BACK_MESSAGE.to_string());
     }
 
     pub fn display(&self, path: &str) {
+        println!();
         println!("--------------------------------------------------------");
         println!("{}", path);
         println!("--------------------------------------------------------");
@@ -36,38 +41,67 @@ impl Menu {
         }
     }
 
-    pub fn get_user_choice(&self) -> String {
-        self.options[self.get_user_input() as usize].clone()
-    }
-
-    fn get_user_input(&self) -> u32 {
-        loop {
-            print!("Escolha uma opção: ");
-            io::stdout().flush().unwrap();
-
-            let mut input: String = String::new();
-            let error_str = "Valor inválido! Tente novamente...";
-
-            io::stdin()
-                .read_line(&mut input)
-                .expect("Falha ao ler entrada");
-
-            match input.trim().parse() {
-                Ok(num) => {
-                    if num <= (self.options.len() - 1) as u32 {
-                        return num;
-                    } else {
-                        println!("{}", error_str);
-                    }
-                }
-                Err(_) => {
-                    println!("{}", error_str);
-                }
-            }
-        }
+    pub fn get_user_choice(&self, index: usize) -> String {
+        self.options[index].clone()
     }
 
     fn clear(&mut self) {
         self.options.clear();
+    }
+
+    pub fn get_command(&self) -> (Command, Option<usize>) {
+        self.flushed_print("Escolha uma opção (ou pressione TAB para retornar): ");
+
+        let mut index_string = String::new();
+        loop {
+            let key_event = Menu::get_key_event();
+            if key_event.kind == KeyEventKind::Release {
+                continue;
+            }
+            match key_event.code {
+                KeyCode::Char(ch) => {
+                    if !ch.is_numeric() {
+                        continue;
+                    }
+                    index_string.push(ch);
+                    self.print_char(ch);
+                }
+                KeyCode::Backspace => {
+                    index_string.pop();
+                    self.delete_char();
+                }
+                KeyCode::Tab => {
+                    return (Command::Return, None);
+                }
+                KeyCode::Enter => {
+                    if index_string.is_empty() {
+                        continue;
+                    }
+                    return (Command::Open, Some(index_string.parse().unwrap()));
+                }
+                _ => {}
+            }
+        }
+    }
+
+    pub fn get_key_event() -> KeyEvent {
+        loop {
+            if let Ok(Event::Key(key_event)) = read() {
+                break key_event;
+            }
+        }
+    }
+
+    pub fn print_char(&self, ch: char) {
+        self.flushed_print(&format!("{}", ch));
+    }
+
+    pub fn delete_char(&self) {
+        self.flushed_print("\u{8} \u{8}");
+    }
+
+    pub fn flushed_print(&self, text: &str) {
+        print!("{}", text);
+        io::stdout().flush().unwrap();
     }
 }
