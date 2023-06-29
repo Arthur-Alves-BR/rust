@@ -13,17 +13,14 @@ fn main() {
 
     loop {
         let dir_entries = get_dir_entries(&path);
-
-        menu.build_options(dir_entries);
-        menu.display(path.to_str().unwrap());
+        menu.display(path.to_str().unwrap(), dir_entries);
 
         match menu.get_command() {
-            (Command::Return, _) => {
+            Command::Return => {
                 path.pop();
             }
-            (Command::Open, index) => {
-                let user_choice = menu.get_user_choice(index.unwrap());
-                path.push(user_choice);
+            Command::Open(item) => {
+                path.push(item);
                 if path.is_file() {
                     open_file(&mut path)
                 }
